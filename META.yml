@@ -1,6 +1,6 @@
---- #YAML:1.0
+---
 name: File-Find-Rule-Filesys-Virtual
-version: 1.21
+version: 1.22
 author:
   - Richard Clamp <richardc@unixbeard.net>
 abstract: File::Find::Rule adapted to Filesys::Virtual
@@ -10,9 +10,10 @@ requires:
   Filesys::Virtual: 0
   perl: 5.006
 build_requires:
+  Filesys::Virtual::Plain: 0
   Test::More: 0
 provides:
   File::Find::Rule::Filesys::Virtual:
     file: lib/File/Find/Rule/Filesys/Virtual.pm
-    version: 1.21
-generated_by: Module::Build version 0.24
+    version: 1.22
+generated_by: Module::Build version 0.25

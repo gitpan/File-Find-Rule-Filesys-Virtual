@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use File::Find::Rule 0.28;
 use base qw( File::Find::Rule );
-our $VERSION = 1.21;
+our $VERSION = 1.22;
 
 =head1 NAME
 
@@ -75,9 +75,34 @@ for my $test (keys %X_tests) {
     }
 }
 
-sub glob {
-    die "I'm too lazy";
+sub grep {
+    my $self = _force_object shift;
+    my @pattern = map {
+        ref $_
+          ? ref $_ eq 'ARRAY'
+            ? map { [ ( ref $_ ? $_ : qr/$_/ ) => 0 ] } @$_
+            : [ $_ => 1 ]
+          : [ qr/$_/ => 1 ]
+      } @_;
+
+    $self->exec( sub {
+        my $vfs = $File::Find::vfs;
+        my $fh = $vfs->open_read($_) or return;
+        local ($_, $.);
+        while (<$fh>) {
+            for my $p (@pattern) {
+                my ($rule, $ret) = @$p;
+                if (ref $rule eq 'Regexp' ? /$rule/ : $rule->(@_)) {
+                  $vfs->close_read($fh);
+                  return $ret;
+                }
+            }
+        }
+        $vfs->close_read($fh);
+        return;
+    } );
 }
+
 
 sub _call_find {
     my $self = shift;
@@ -96,7 +121,22 @@ sub __inner_find {
     my $parent = shift;
     my $vfs = $File::Find::vfs;
 
-    $vfs->chdir( $path ) or do { print "chdir $path failed\n"; return };
+    unless ( $vfs->chdir( $path ) ) {
+        # Couldn't chdir into it, so we see if it's a file.
+        # Actually because there are many forms of "file" (plain,
+        # symlink, socket, block, character) we just check if it
+        # exists and that it's not a directory.
+        if ($vfs->test('e', $path) && !$vfs->test('d', $path)) {
+            my ($dir, $name) = $path =~ m{^(.*/)(.*)};
+            local $_ = $name;
+            local $File::Find::dir  = $dir;
+            local $File::Find::name = $path;
+            local $File::Find::prune;
+            $vfs->chdir($dir);
+            $wanted->();
+        }
+        return; # I have no clue - bail
+    }
     local $File::Find::dir  = $parent ? "$parent/$path" : $path;
     for my $name ($vfs->list) {
         local $_ = $name;
@@ -127,10 +167,6 @@ __END__
 
 =item
 
-The ->grep builtin isn't currently supported.
-
-=item
-
 The File::Find emulation will probably not be full enough for other
 File::Find::Rule extensions to do their thang.
 
@@ -142,17 +178,10 @@ Richard Clamp <richardc@unixbeard.net>
 
 =head1 COPYRIGHT
 
-Copyright 2004 Richard Clamp.  All Rights Reserved.
+Copyright 2004, 2006 Richard Clamp.  All Rights Reserved.
 
 This program is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.
-
-=head1 BUGS
-
-None known.
-
-Bugs should be reported to me via the CPAN RT system.
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=File::Find::Rule::Filesys::Virtual>.
 
 =head1 SEE ALSO
 

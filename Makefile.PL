@@ -5,9 +5,10 @@ WriteMakefile
           'NAME' => 'File::Find::Rule::Filesys::Virtual',
           'VERSION_FROM' => 'lib/File/Find/Rule/Filesys/Virtual.pm',
           'PREREQ_PM' => {
-                           'Test::More' => 0,
                            'File::Find::Rule' => '0.28',
-                           'Filesys::Virtual' => 0
+                           'Filesys::Virtual' => '0',
+                           'Filesys::Virtual::Plain' => '0',
+                           'Test::More' => '0'
                          },
           'INSTALLDIRS' => 'site',
           'PL_FILES' => {}
